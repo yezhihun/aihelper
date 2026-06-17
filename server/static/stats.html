@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>问得好 - 数据统计</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a; color: #e2e8f0; min-height: 100vh;
+    }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+    }
+    h1 { font-size: 24px; color: #fff; }
+    h1 span { color: #818cf8; }
+    .toolbar { display: flex; gap: 8px; align-items: center; }
+    select, button {
+      background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
+      padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer;
+    }
+    button:hover { background: #334155; }
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px;
+    }
+    .card .label { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+    .card .value { font-size: 26px; font-weight: 700; color: #fff; }
+    .card .sub { font-size: 11px; color: #64748b; margin-top: 4px; }
+    section { margin-bottom: 28px; }
+    section h2 {
+      font-size: 16px; margin-bottom: 12px; color: #cbd5e1;
+      border-left: 3px solid #6366f1; padding-left: 10px;
+    }
+    table {
+      width: 100%; border-collapse: collapse; background: #1e293b;
+      border-radius: 12px; overflow: hidden; border: 1px solid #334155;
+      font-size: 13px;
+    }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #334155; }
+    th { background: #0f172a; color: #94a3b8; font-weight: 600; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #263248; }
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 6px;
+      font-size: 11px; background: #312e81; color: #a5b4fc;
+    }
+    .tag.deepseek { background: #1e3a5f; color: #7dd3fc; }
+    .tag.chatgpt { background: #14532d; color: #86efac; }
+    .err { background: #450a0a; color: #fca5a5; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    .loading { color: #64748b; padding: 24px; text-align: center; }
+    .auth-bar {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .auth-bar input {
+      flex: 1; min-width: 200px; background: #1e293b; border: 1px solid #334155;
+      color: #e2e8f0; padding: 8px 12px; border-radius: 8px; font-size: 13px;
+    }
+    .cost { color: #fbbf24; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>问得好 <span>数据统计</span></h1>
+      <div class="toolbar">
+        <label>周期</label>
+        <select id="days">
+          <option value="7" selected>最近 7 天</option>
+          <option value="14">最近 14 天</option>
+          <option value="30">最近 30 天</option>
+          <option value="90">最近 90 天</option>
+        </select>
+        <button id="refresh">刷新</button>
+      </div>
+    </header>
+    <div id="error" class="err" style="display:none"></div>
+    <div class="auth-bar">
+      <input id="admin-token" type="password" placeholder="管理 Token（ADMIN_TOKEN）" />
+      <button id="save-token">保存并加载</button>
+    </div>
+    <div id="loading" class="loading">加载中...</div>
+    <div id="content" style="display:none">
+      <div class="cards" id="summary-cards"></div>
+      <section>
+        <h2>用户明细</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>用户ID</th>
+                <th>首次使用</th>
+                <th>最近使用</th>
+                <th>使用次数</th>
+                <th>优化流程</th>
+                <th>连续活跃(天)</th>
+                <th>最长流程(秒)</th>
+                <th>Token</th>
+                <th>花费(元)</th>
+                <th>平台</th>
+                <th>发送成功率</th>
+              </tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <h2>每日趋势</h2>
+        <table>
+          <thead>
+            <tr><th>日期</th><th>事件数</th><th>活跃用户</th><th>Token</th><th>花费(元)</th></tr>
+          </thead>
+          <tbody id="daily-body"></tbody>
+        </table>
+      </section>
+      <section>
+        <h2>最近事件</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th><th>事件</th><th>用户</th><th>平台</th>
+                <th>Token</th><th>花费(元)</th><th>详情</th>
+              </tr>
+            </thead>
+            <tbody id="events-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function fmtCost(v) {
+      return `<span class="cost num">¥${Number(v || 0).toFixed(4)}</span>`;
+    }
+
+    function fmtDur(sec) {
+      if (!sec) return '-';
+      if (sec < 60) return sec + 's';
+      return Math.floor(sec / 60) + 'm' + (sec % 60) + 's';
+    }
+
+    function platformTag(p) {
+      if (!p) return '-';
+      return `<span class="tag ${p}">${p}</span>`;
+    }
+
+    function getAdminToken() {
+      const fromUrl = new URLSearchParams(location.search).get('token');
+      if (fromUrl) {
+        localStorage.setItem('adminToken', fromUrl);
+        return fromUrl;
+      }
+      return localStorage.getItem('adminToken') || $('admin-token').value.trim();
+    }
+
+    async function authFetch(url) {
+      const token = getAdminToken();
+      const sep = url.includes('?') ? '&' : '?';
+      const resp = await fetch(`${url}${sep}token=${encodeURIComponent(token)}`, {
+        headers: { 'X-Admin-Token': token },
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
+      return data;
+    }
+
+    async function load() {
+      const token = getAdminToken();
+      if (!token) {
+        $('loading').style.display = 'none';
+        $('error').style.display = 'block';
+        $('error').textContent = '请输入管理 Token 后点击「保存并加载」';
+        return;
+      }
+      $('admin-token').value = token;
+
+      $('error').style.display = 'none';
+      $('loading').style.display = 'block';
+      $('content').style.display = 'none';
+      const days = $('days').value;
+
+      try {
+        const [summary, users, events] = await Promise.all([
+          authFetch(`/api/stats/summary?days=${days}`),
+          authFetch('/api/stats/users?limit=100'),
+          authFetch('/api/stats/events?limit=40'),
+        ]);
+
+        $('summary-cards').innerHTML = [
+          { label: '独立用户', value: summary.uniqueUsers, sub: `周期 ${days} 天` },
+          { label: '总事件数', value: summary.totalEvents, sub: `流程 ${summary.uniqueSessions} 次` },
+          { label: '点击优化', value: summary.optimizeClicks, sub: `分析成功 ${summary.analyzeSuccess}` },
+          { label: '发送成功', value: summary.sendSuccess, sub: `失败 ${summary.sendFail}` },
+          { label: '累计花费', value: '¥' + summary.totalCost.toFixed(4), sub: `Token ${summary.totalTokens}`, cost: true },
+          { label: '平均完整度', value: (summary.avgScore ?? '-') + (summary.avgScore ? '%' : ''), sub: `分析耗时 ${summary.avgAnalyzeDurationMs ?? '-'}ms` },
+          { label: '平均上下文', value: summary.avgContextCount ?? '-', sub: `流程时长 ${fmtDur(summary.avgSessionDurationSec)}` },
+        ].map(c => `
+          <div class="card">
+            <div class="label">${c.label}</div>
+            <div class="value ${c.cost ? 'cost' : ''}">${c.value}</div>
+            <div class="sub">${c.sub}</div>
+          </div>
+        `).join('');
+
+        $('users-body').innerHTML = users.length ? users.map(u => `
+          <tr>
+            <td><code>${u.clientId}</code></td>
+            <td class="num">${u.firstSeenAt}</td>
+            <td class="num">${u.lastSeenAt}</td>
+            <td class="num">${u.totalEvents}</td>
+            <td class="num">${u.totalSessions}</td>
+            <td class="num">${u.consecutiveDays}</td>
+            <td class="num">${u.maxSessionDurationSec}</td>
+            <td class="num">${u.totalTokens}</td>
+            <td>${fmtCost(u.totalCost)}</td>
+            <td>${platformTag(u.primaryPlatform)}</td>
+            <td class="num">${u.successRate != null ? u.successRate + '%' : '-'}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="11" style="text-align:center;color:#64748b">暂无用户数据</td></tr>';
+
+        $('daily-body').innerHTML = (summary.dailyStats || []).map(d => `
+          <tr>
+            <td>${d.date}</td>
+            <td class="num">${d.events}</td>
+            <td class="num">${d.users}</td>
+            <td class="num">${d.tokens}</td>
+            <td>${fmtCost(d.cost)}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" style="text-align:center;color:#64748b">暂无数据</td></tr>';
+
+        $('events-body').innerHTML = events.map(e => `
+          <tr>
+            <td class="num">${e.createdAt}</td>
+            <td>${e.eventType}</td>
+            <td><code>${e.clientId || '-'}</code></td>
+            <td>${platformTag(e.platform)}</td>
+            <td class="num">${e.tokensPrompt + e.tokensCompletion}</td>
+            <td>${fmtCost(e.cost)}</td>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8"
+                title="${JSON.stringify(e.properties)}">${JSON.stringify(e.properties)}</td>
+          </tr>
+        `).join('');
+
+        $('loading').style.display = 'none';
+        $('content').style.display = 'block';
+      } catch (e) {
+        $('loading').style.display = 'none';
+        $('error').style.display = 'block';
+        $('error').textContent = '加载失败: ' + e.message;
+      }
+    }
+
+    $('save-token').onclick = () => {
+      const t = $('admin-token').value.trim();
+      if (t) localStorage.setItem('adminToken', t);
+      load();
+    };
+    $('refresh').onclick = load;
+    $('days').onchange = load;
+    load();
+    setInterval(load, 60000);
+  </script>
+</body>
+</html>

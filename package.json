@@ -1,0 +1,18 @@
+{
+  "name": "aihelper",
+  "version": "2.0.0",
+  "private": true,
+  "description": "问得好 - AI 提问增强层",
+  "workspaces": [
+    "extension",
+    "desktop",
+    "packages/*"
+  ],
+  "scripts": {
+    "extension:build": "npm run build --workspace=@aihelper/extension",
+    "extension:dev": "npm run dev --workspace=@aihelper/extension",
+    "desktop:dev": "npm run tauri:dev --workspace=@aihelper/desktop",
+    "desktop:build": "npm run tauri:build --workspace=@aihelper/desktop",
+    "server": "cd server && uvicorn main:app --reload --port 8000"
+  }
+}

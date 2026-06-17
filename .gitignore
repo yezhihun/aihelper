@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+dist/
+extension/dist/
+desktop/dist/
+desktop/src-tauri/target/
+extension/.env.production
+.idea/
+*.jsc
+.DS_Store
+.env
+.env.local
+*.log
+server/data/
+*.docx
